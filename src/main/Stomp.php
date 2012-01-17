@@ -536,6 +536,9 @@ class Stomp
             if (strpos($data, "\x00") !== false) {
                 $end = true;
                 $data = rtrim($data, "\n");
+            } elseif (strpos($data, 'ERROR') === 0) {
+                $end = true;
+                $data = rtrim($data, "\n");
             }
             $len = strlen($data);
         } while ($len < 2 || $end == false);
