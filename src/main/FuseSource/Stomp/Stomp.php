@@ -57,6 +57,12 @@ class Stomp
      */
 	public $clientId = null;
     
+    /**
+     * An instance of StompConnectionInterface 
+     * 
+     * @var StompConnectionInterface
+     */
+    protected $connection;
     protected $_brokerUri = null;
     protected $_socket = null;
     protected $_hosts = array();
@@ -78,103 +84,9 @@ class Stomp
      * @param string $brokerUri Broker URL
      * @throws StompException
      */
-    public function __construct ($brokerUri)
+    public function __construct (StompConnectionInterface $connection)
     {
-        $this->_brokerUri = $brokerUri;
-        $this->_init();
-    }
-    /**
-     * Initialize connection
-     *
-     * @throws StompException
-     */
-    protected function _init ()
-    {
-        $pattern = "|^(([a-zA-Z0-9]+)://)+\(*([a-zA-Z0-9\.:/i,-]+)\)*\??([a-zA-Z0-9=&]*)$|i";
-        if (preg_match($pattern, $this->_brokerUri, $regs)) {
-            $scheme = $regs[2];
-            $hosts = $regs[3];
-            $params = $regs[4];
-            if ($scheme != "failover") {
-                $this->_processUrl($this->_brokerUri);
-            } else {
-                $urls = explode(",", $hosts);
-                foreach ($urls as $url) {
-                    $this->_processUrl($url);
-                }
-            }
-            if ($params != null) {
-                parse_str($params, $this->_params);
-            }
-        } else {
-            throw new StompException("Bad Broker URL {$this->_brokerUri}");
-        }
-    }
-    /**
-     * Process broker URL
-     *
-     * @param string $url Broker URL
-     * @throws StompException
-     * @return boolean
-     */
-    protected function _processUrl ($url)
-    {
-        $parsed = parse_url($url);
-        if ($parsed) {
-            array_push($this->_hosts, array($parsed['host'] , $parsed['port'] , $parsed['scheme']));
-        } else {
-            throw new StompException("Bad Broker URL $url");
-        }
-    }
-    /**
-     * Make socket connection to the server
-     *
-     * @throws StompException
-     */
-    protected function _makeConnection ()
-    {
-        if (count($this->_hosts) == 0) {
-            throw new StompException("No broker defined");
-        }
-        
-        // force disconnect, if previous established connection exists
-        $this->disconnect();
-        
-        $i = $this->_currentHost;
-        $att = 0;
-        $connected = false;
-        $connect_errno = null;
-        $connect_errstr = null;
-        
-        while (! $connected && $att ++ < $this->_attempts) {
-            if (isset($this->_params['randomize']) && $this->_params['randomize'] == 'true') {
-                $i = rand(0, count($this->_hosts) - 1);
-            } else {
-                $i = ($i + 1) % count($this->_hosts);
-            }
-            $broker = $this->_hosts[$i];
-            $host = $broker[0];
-            $port = $broker[1];
-            $scheme = $broker[2];
-            if ($port == null) {
-                $port = $this->_defaultPort;
-            }
-            if ($this->_socket != null) {
-                fclose($this->_socket);
-                $this->_socket = null;
-            }
-            $this->_socket = @fsockopen($scheme . '://' . $host, $port, $connect_errno, $connect_errstr, $this->_connect_timeout_seconds);
-            if (!is_resource($this->_socket) && $att >= $this->_attempts && !array_key_exists($i + 1, $this->_hosts)) {
-                throw new StompException("Could not connect to $host:$port ($att/{$this->_attempts})");
-            } else if (is_resource($this->_socket)) {
-                $connected = true;
-                $this->_currentHost = $i;
-                break;
-            }
-        }
-        if (! $connected) {
-            throw new StompException("Could not connect to a broker");
-        }
+        $this->connection = $connection;
     }
     /**
      * Connect to server
@@ -186,7 +98,6 @@ class Stomp
      */
     public function connect ($username = '', $password = '')
     {
-        $this->_makeConnection();
         if ($username != '') {
             $this->_username = $username;
         }
@@ -219,7 +130,7 @@ class Stomp
      */
     public function isConnected ()
     {
-        return !empty($this->_sessionId) && is_resource($this->_socket);
+        return !empty($this->_sessionId) && $this->getConnection()->isConnected();
     }
     /**
      * Current stomp session ID
@@ -456,7 +367,7 @@ class Stomp
      * Graceful disconnect from the server
      *
      */
-    public function disconnect ()
+    public function disconnect()
     {
 		$headers = array();
 
@@ -482,30 +393,14 @@ class Stomp
      */
     protected function _writeFrame (Frame $stompFrame)
     {
-        if (!is_resource($this->_socket)) {
+        if (!$this->getConnection()->isConnected()) {
             throw new StompException('Socket connection hasn\'t been established');
         }
 
         $data = $stompFrame->__toString();
-        $r = fwrite($this->_socket, $data, strlen($data));
-        if ($r === false || $r == 0) {
-            $this->_reconnect();
-            $this->_writeFrame($stompFrame);
-        }
+        $this->getConnection()->write($data);
     }
-    
-    /**
-     * Set timeout to wait for content to read
-     *
-     * @param int $seconds_to_wait  Seconds to wait for a frame
-     * @param int $milliseconds Milliseconds to wait for a frame
-     */
-    public function setReadTimeout($seconds, $milliseconds = 0) 
-    {
-        $this->_read_timeout_seconds = $seconds;
-        $this->_read_timeout_milliseconds = $milliseconds;
-    }
-    
+        
     /**
      * Read response frame from server
      *
@@ -517,17 +412,11 @@ class Stomp
             return false;
         }
         
-        $rb = 1024;
         $data = '';
         $end = false;
         
         do {
-            $read = fread($this->_socket, $rb);
-            if ($read === false) {
-                $this->_reconnect();
-                return $this->readFrame();
-            }
-            $data .= $read;
+            $data .= $this->getConnection()->read();
             if (strpos($data, "\x00") !== false) {
                 $end = true;
                 $data = rtrim($data, "\n");
@@ -563,23 +452,7 @@ class Stomp
      */
     public function hasFrameToRead()
     {
-        $read = array($this->_socket);
-        $write = null;
-        $except = null;
-        
-        $has_frame_to_read = @stream_select($read, $write, $except, $this->_read_timeout_seconds, $this->_read_timeout_milliseconds);
-        
-        if ($has_frame_to_read !== false)
-            $has_frame_to_read = count($read);
-
-
-        if ($has_frame_to_read === false) {
-            throw new StompException('Check failed to determine if the socket is readable');
-        } else if ($has_frame_to_read > 0) {
-            return true;
-        } else {
-            return false; 
-        }
+        return $this->getConnection()->hasData();
     }
     
     /**
@@ -602,5 +475,10 @@ class Stomp
     public function __destruct()
     {
         $this->disconnect();
+    }
+    
+    protected function getConnection()
+    {
+        return $this->connection;
     }
 }
