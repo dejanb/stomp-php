@@ -6,7 +6,7 @@ namespace FuseSource\Stomp;
  *
  * @author Soeren Rohweder
  */
-interface StompConnectionInterface
+interface ConnectionInterface
 {
     public function read();
     

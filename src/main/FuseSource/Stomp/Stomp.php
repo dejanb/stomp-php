@@ -84,7 +84,7 @@ class Stomp
      * @param string $brokerUri Broker URL
      * @throws StompException
      */
-    public function __construct (StompConnectionInterface $connection)
+    public function __construct (ConnectionInterface $connection)
     {
         $this->connection = $connection;
     }

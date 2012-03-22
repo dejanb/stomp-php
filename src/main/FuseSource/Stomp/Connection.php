@@ -11,7 +11,7 @@ use FuseSource\Stomp\Exception\StompException;
  *
  * @author Soeren Rohweder
  */
-class StompConnection implements StompConnectionInterface
+class StompConnection implements ConnectionInterface
 {
 
     /**
