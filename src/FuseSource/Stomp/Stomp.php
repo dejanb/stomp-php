@@ -532,6 +532,26 @@ class Stomp
     }
 
     /**
+     * Set timeout to wait for connection
+     *
+     * @param int $seconds Seconds to wait for connection
+     */
+    public function setConnectionTimeout($seconds)
+    {
+        $this->_connect_timeout_seconds = $seconds;
+    }
+
+    /**
+     * Set maximum number of connection attempts
+     *
+     * @param int $maxAttempts number of attempts
+     */
+    public function setMaxAttempts($maxAttempts)
+    {
+        $this->_attempts = $maxAttempts;
+    }
+
+    /**
      * Set timeout to wait for content to read
      *
      * @param int $seconds_to_wait  Seconds to wait for a frame
