@@ -341,7 +341,7 @@ class Stomp
         } else if ($this->brokerVendor == 'RMQ') {
             $headers['prefetch-count'] = $this->prefetchSize;
         }
-		
+
         if ($this->clientId != null) {
             if ($this->brokerVendor == 'AMQ') {
                 $headers['activemq.subscriptionName'] = $this->clientId;
@@ -558,12 +558,11 @@ class Stomp
             return false;
         }
 
-        $rb = 1024;
         $data = '';
         $end = false;
 
         do {
-            $read = fgets($this->_socket, $rb);
+            $read = fgetc($this->_socket);
             if ($read === false || $read === "") {
                 $this->_reconnect();
                 return $this->readFrame();
