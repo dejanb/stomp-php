@@ -78,7 +78,7 @@ $msg = $consumer->readFrame();
 // do what you want with the message
 if ( $msg != null) {
     echo "Message '$msg->body' received from topic\n";
-	$consumer->ack($msg);
+    $consumer->ack($msg);
 } else {
     echo "Failed to receive a message\n";
 }

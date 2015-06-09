@@ -48,14 +48,14 @@ class Stomp
      *
      * @var int
      */
-	public $prefetchSize = 1;
+    public $prefetchSize = 1;
 
-	/**
+    /**
      * Client id used for durable subscriptions
      *
      * @var string
      */
-	public $clientId = null;
+    public $clientId = null;
 
     /**
     * Vendor flavouring (AMQ or RMQ at the moment)
@@ -199,11 +199,11 @@ class Stomp
         if ($password != '') {
             $this->_password = $password;
         }
-		$headers = array('login' => $this->_username , 'passcode' => $this->_password);
-		if ($this->clientId != null) {
-			$headers["client-id"] = $this->clientId;
-		}
-		$frame = new Frame("CONNECT", $headers);
+        $headers = array('login' => $this->_username , 'passcode' => $this->_password);
+        if ($this->clientId != null) {
+            $headers["client-id"] = $this->clientId;
+        }
+        $frame = new Frame("CONNECT", $headers);
         $this->_writeFrame($frame);
         $frame = $this->readFrame();
 
@@ -337,11 +337,11 @@ class Stomp
     {
         $headers = array('ack' => 'client');
         if ($this->brokerVendor == 'AMQ') {
-		  $headers['activemq.prefetchSize'] = $this->prefetchSize;
+            $headers['activemq.prefetchSize'] = $this->prefetchSize;
         } else if ($this->brokerVendor == 'RMQ') {
             $headers['prefetch-count'] = $this->prefetchSize;
         }
-		
+
         if ($this->clientId != null) {
             if ($this->brokerVendor == 'AMQ') {
                 $headers['activemq.subscriptionName'] = $this->clientId;
@@ -456,7 +456,7 @@ class Stomp
     }
     /**
      * Acknowledge consumption of a message from a subscription
-	 * Note: This operation is always asynchronous
+     * Note: This operation is always asynchronous
      *
      * @param string|Frame $messageMessage ID
      * @param string $transactionId
@@ -494,11 +494,11 @@ class Stomp
      */
     public function disconnect ()
     {
-		$headers = array();
+        $headers = array();
 
-		if ($this->clientId != null) {
-			$headers["client-id"] = $this->clientId;
-		}
+        if ($this->clientId != null) {
+            $headers["client-id"] = $this->clientId;
+        }
 
         if (is_resource($this->_socket)) {
             $this->_writeFrame(new Frame('DISCONNECT', $headers));
