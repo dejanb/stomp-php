@@ -87,5 +87,3 @@ if ( $msg != null) {
 $consumer->unsubscribe("/topic/test");
 $consumer->disconnect();
 $producer->disconnect();
-
-?>

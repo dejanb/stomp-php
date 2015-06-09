@@ -94,4 +94,3 @@ if ($frame === false) {
 
 // disconnect
 $con->disconnect();
-?>

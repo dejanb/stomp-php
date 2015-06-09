@@ -64,5 +64,3 @@ echo "System manager sent message with body 'test'\n";
 
 // disconnect
 $con->disconnect();
-
-?>

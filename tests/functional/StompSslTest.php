@@ -239,4 +239,3 @@ class StompSslTest extends PHPUnit_Framework_TestCase
         $this->assertTrue($this->Stomp->unsubscribe($this->queue));
     }
 }
-

@@ -341,4 +341,3 @@ class StompRabbitTest extends PHPUnit_Framework_TestCase
         $consumer2->disconnect();
     }
 }
-
