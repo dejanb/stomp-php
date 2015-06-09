@@ -1,5 +1,4 @@
 <?php
-
 namespace FuseSource\Stomp;
 /**
  *
@@ -24,5 +23,5 @@ namespace FuseSource\Stomp;
  */
 interface ExceptionInterface
 {
-    //put your code here
+    // put your code here
 }
