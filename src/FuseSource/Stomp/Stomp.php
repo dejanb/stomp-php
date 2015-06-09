@@ -88,6 +88,7 @@ class Stomp
         $this->_brokerUri = $brokerUri;
         $this->_init();
     }
+
     /**
      * Initialize connection
      *
@@ -96,23 +97,25 @@ class Stomp
     protected function _init()
     {
         $pattern = "|^(([a-zA-Z0-9]+)://)+\(*([a-zA-Z0-9\.:/i,-]+)\)*\??([a-zA-Z0-9=&]*)$|i";
-        if (preg_match($pattern, $this->_brokerUri, $regs)) {
-            $scheme = $regs[2];
-            $hosts = $regs[3];
-            $params = $regs[4];
-            if ($scheme != 'failover') {
-                $this->_processUrl($this->_brokerUri);
-            } else {
-                $urls = explode(',', $hosts);
-                foreach ($urls as $url) {
-                    $this->_processUrl($url);
-                }
-            }
-            if ($params != null) {
-                parse_str($params, $this->_params);
-            }
-        } else {
+
+        if (!preg_match($pattern, $this->_brokerUri, $regs)) {
             throw new StompException("Bad Broker URL {$this->_brokerUri}");
+        }
+
+        $scheme = $regs[2];
+        $hosts = $regs[3];
+        $params = $regs[4];
+        if ($scheme !== 'failover') {
+            $this->_processUrl($this->_brokerUri);
+        } else {
+            $urls = explode(',', $hosts);
+            foreach ($urls as $url) {
+                $this->_processUrl($url);
+            }
+        }
+
+        if ($params != null) {
+            parse_str($params, $this->_params);
         }
     }
 
@@ -126,11 +129,12 @@ class Stomp
     protected function _processUrl($url)
     {
         $parsed = parse_url($url);
-        if ($parsed) {
-            array_push($this->_hosts, array($parsed['host'] , $parsed['port'] , $parsed['scheme']));
-        } else {
+
+        if (!$parsed) {
             throw new StompException("Bad Broker URL $url");
         }
+
+        array_push($this->_hosts, array($parsed['host'] , $parsed['port'] , $parsed['scheme']));
     }
 
     /**
@@ -140,7 +144,7 @@ class Stomp
      */
     protected function _makeConnection()
     {
-        if (count($this->_hosts) == 0) {
+        if (count($this->_hosts) === 0) {
             throw new StompException('No broker defined');
         }
 
@@ -173,7 +177,9 @@ class Stomp
             $this->_socket = @fsockopen($scheme . '://' . $host, $port, $connect_errno, $connect_errstr, $this->_connect_timeout_seconds);
             if (!is_resource($this->_socket) && $att >= $this->_attempts && !array_key_exists($i + 1, $this->_hosts)) {
                 throw new StompException("Could not connect to $host:$port ($att/{$this->_attempts})");
-            } else if (is_resource($this->_socket)) {
+            }
+
+            if (is_resource($this->_socket)) {
                 $connected = true;
                 $this->_currentHost = $i;
                 break;
@@ -219,9 +225,9 @@ class Stomp
 
         if ($frame instanceof Frame) {
             throw new StompException("Unexpected command: {$frame->command}", 0, $frame->body);
-        } else {
-            throw new StompException('Connection not acknowledged');
         }
+
+        throw new StompException('Connection not acknowledged');
     }
 
     /**
@@ -273,7 +279,7 @@ class Stomp
      * Prepare frame receipt
      *
      * @param Frame $frame
-     * @param boolean $sync
+     * @param boolean|null $sync
      */
     protected function _prepareReceipt(Frame $frame, $sync)
     {
@@ -296,21 +302,20 @@ class Stomp
      */
     protected function _waitForReceipt(Frame $frame, $sync)
     {
-
         $receive = $this->sync;
         if ($sync !== null) {
             $receive = $sync;
         }
-        if ($receive == true) {
+        if ($receive === true) {
             $id = (isset($frame->headers['receipt'])) ? $frame->headers['receipt'] : null;
-            if ($id == null) {
+            if ($id === null) {
                 return true;
             }
 
             $buf = array();
             while(true) {
                 $frame = $this->readFrame();
-                if ($frame == false) {
+                if ($frame === false) {
                     if (!empty($buf)) {
                         $this->_waitbuf = $buf;
                         return false;
@@ -320,12 +325,12 @@ class Stomp
                     if ($frame->headers['receipt-id'] == $id) {
                         $this->_waitbuf = $buf;
                         return true;
-                    } else {
-                        throw new StompException("Unexpected receipt id {$frame->headers['receipt-id']}", 0, $frame->body);
                     }
-                } else {
-                    $buf[] = $frame;
+
+                    throw new StompException("Unexpected receipt id {$frame->headers['receipt-id']}", 0, $frame->body);
                 }
+
+                $buf[] = $frame;
             }
         }
         return true;
@@ -335,17 +340,17 @@ class Stomp
      * Register to listen to a given destination
      *
      * @param string $destination Destination queue
-     * @param array $properties
-     * @param boolean $sync Perform request synchronously
+     * @param array|null $properties
+     * @param boolean|null $sync Perform request synchronously
      * @return boolean
      * @throws StompException
      */
     public function subscribe($destination, $properties = null, $sync = null)
     {
         $headers = array('ack' => 'client');
-        if ($this->brokerVendor == 'AMQ') {
+        if ($this->brokerVendor === 'AMQ') {
             $headers['activemq.prefetchSize'] = $this->prefetchSize;
-        } else if ($this->brokerVendor == 'RMQ') {
+        } else if ($this->brokerVendor === 'RMQ') {
             $headers['prefetch-count'] = $this->prefetchSize;
         }
 
@@ -366,7 +371,7 @@ class Stomp
         $frame = new Frame('SUBSCRIBE', $headers);
         $this->_prepareReceipt($frame, $sync);
         $this->_writeFrame($frame);
-        if ($this->_waitForReceipt($frame, $sync) == true) {
+        if ($this->_waitForReceipt($frame, $sync) === true) {
             $this->_subscriptions[$destination] = $properties;
             return true;
         }
@@ -391,8 +396,8 @@ class Stomp
                 $headers[$name] = $value;
             }
         }
-        if ($this->clientId != null) {
-            if ($this->brokerVendor == 'RMQ') {
+        if ($this->clientId !== null) {
+            if ($this->brokerVendor === 'RMQ') {
                 $headers['id'] = $this->clientId;
             }
         }
@@ -400,7 +405,7 @@ class Stomp
         $frame = new Frame('UNSUBSCRIBE', $headers);
         $this->_prepareReceipt($frame, $sync);
         $this->_writeFrame($frame);
-        if ($this->_waitForReceipt($frame, $sync) == true) {
+        if ($this->_waitForReceipt($frame, $sync) === true) {
             unset($this->_subscriptions[$destination]);
             return true;
         }
@@ -419,7 +424,7 @@ class Stomp
     public function begin($transactionId = null, $sync = null)
     {
         $headers = array();
-        if (isset($transactionId)) {
+        if ($transactionId !== null) {
             $headers['transaction'] = $transactionId;
         }
         $frame = new Frame('BEGIN', $headers);
@@ -484,22 +489,22 @@ class Stomp
                 $headers['transaction'] = $transactionId;
             }
 
-            if ($this->brokerVendor == 'RMQ') {
+            if ($this->brokerVendor === 'RMQ') {
                 unset($headers['content-length']);
             }
             $frame = new Frame('ACK', $headers);
             $this->_writeFrame($frame);
             return true;
-        } else {
-            $headers = array();
-            if (isset($transactionId)) {
-                $headers['transaction'] = $transactionId;
-            }
-            $headers['message-id'] = $message;
-            $frame = new Frame('ACK', $headers);
-            $this->_writeFrame($frame);
-            return true;
         }
+
+        $headers = array();
+        if (isset($transactionId)) {
+            $headers['transaction'] = $transactionId;
+        }
+        $headers['message-id'] = $message;
+        $frame = new Frame('ACK', $headers);
+        $this->_writeFrame($frame);
+        return true;
     }
 
     /**
@@ -510,7 +515,7 @@ class Stomp
         $headers = array();
 
         if ($this->clientId != null) {
-            $headers["client-id"] = $this->clientId;
+            $headers['client-id'] = $this->clientId;
         }
 
         if (is_resource($this->_socket)) {
@@ -561,7 +566,7 @@ class Stomp
     /**
      * Read response frame from server
      *
-     * @return Frame False when no frame to read
+     * @return Frame|false when no frame to read
      */
     public function readFrame()
     {
@@ -579,7 +584,7 @@ class Stomp
 
         do {
             $read = fgets($this->_socket, $rb);
-            if ($read === false || $read === "") {
+            if ($read === false || $read === '') {
                 $this->_reconnect();
                 return $this->readFrame();
             }
@@ -596,7 +601,7 @@ class Stomp
         $headers = array();
         $command = null;
         foreach ($header as $v) {
-            if (isset($command)) {
+            if ($command !== null) {
                 list ($name, $value) = explode(':', $v, 2);
                 $headers[$name] = $value;
             } else {
@@ -624,17 +629,15 @@ class Stomp
 
         $has_frame_to_read = @stream_select($read, $write, $except, $this->_read_timeout_seconds, $this->_read_timeout_milliseconds);
 
-        if ($has_frame_to_read !== false)
+        if ($has_frame_to_read !== false) {
             $has_frame_to_read = count($read);
-
+        }
 
         if ($has_frame_to_read === false) {
             throw new StompException('Check failed to determine if the socket is readable');
-        } else if ($has_frame_to_read > 0) {
-            return true;
         }
 
-        return false;
+        return ($has_frame_to_read > 0);
     }
 
     /**
@@ -652,7 +655,7 @@ class Stomp
     }
 
     /**
-     * Graceful object desruction
+     * Graceful object destruction
      */
     public function __destruct()
     {
