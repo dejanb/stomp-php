@@ -1,5 +1,10 @@
 A simple PHP [Stomp](http://stomp.github.com) Client
 
+This Project Has Been Deprecated
+--------------------------------
+
+*This repository is no longer maintained*. We support and maintain the successor of this codebase at [stomp-php/stomp-php](https://github.com/stomp-php/stomp-php).
+
 Version choice
 --------------
 There are 2 Versions of stomp-php. 1.x is compatible with PHP <= PHP-5.2 as it
