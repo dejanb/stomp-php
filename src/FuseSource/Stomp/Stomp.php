@@ -542,6 +542,17 @@ class Stomp
         $this->_read_timeout_seconds = $seconds;
         $this->_read_timeout_milliseconds = $milliseconds;
     }
+	
+    /**
+     * Set timeout to wait for connection to MQ
+     *
+     * @param int $seconds  Seconds to attempt for a connection
+     * 
+     */
+    public function setConnectTimeout($seconds)
+    {
+        $this->_connect_timeout_seconds = $seconds;
+    }
 
     /**
      * Read response frame from server
