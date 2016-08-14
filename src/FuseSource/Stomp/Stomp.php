@@ -66,27 +66,34 @@ class Stomp
     protected $_socket = null;
     protected $_hosts = array();
     protected $_params = array();
+    protected $_ctx = null;
     protected $_subscriptions = array();
     protected $_defaultPort = 61613;
     protected $_currentHost = - 1;
-    protected $_attempts = 10;
+    protected $_attempts = null;
     protected $_username = '';
     protected $_password = '';
     protected $_sessionId;
     protected $_read_timeout_seconds = 60;
     protected $_read_timeout_milliseconds = 0;
-    protected $_connect_timeout_seconds = 60;
+    protected $_connect_timeout_seconds = null;
     protected $_waitbuf = array();
 
     /**
      * Constructor
      *
      * @param string $brokerUri Broker URL
+     * @param array $opts options will be passed to stream_context_create and
+     *        eventually be used to setup the connection. See the respective
+     *        documentation on php.net on how to fill this array.
      * @throws StompException
      */
-    public function __construct ($brokerUri)
+    public function __construct ($brokerUri, $opts = array(), $connect_timeout_seconds = 60, $attempts = 10)
     {
         $this->_brokerUri = $brokerUri;
+        $this->_ctx = stream_context_create($opts);
+        $this->_connect_timeout_seconds = $connect_timeout_seconds;
+        $this->_attempts = $attempts;
         $this->_init();
     }
     /**
@@ -166,12 +173,20 @@ class Stomp
                 $port = $this->_defaultPort;
             }
             if ($this->_socket != null) {
-                fclose($this->_socket);
+                stream_socket_shutdown($this->_socket, STREAM_SHUT_RDWR);
                 $this->_socket = null;
             }
-            $this->_socket = @fsockopen($scheme . '://' . $host, $port, $connect_errno, $connect_errstr, $this->_connect_timeout_seconds);
+
+            $this->_socket = @stream_socket_client(
+                $scheme.'://'.$host.':'.$port,
+                $connect_errno, $connect_errstr,
+                $this->_connect_timeout_seconds,
+                STREAM_CLIENT_CONNECT, $this->_ctx
+            );
             if (!is_resource($this->_socket) && $att >= $this->_attempts && !array_key_exists($i + 1, $this->_hosts)) {
-                throw new StompException("Could not connect to $host:$port ($att/{$this->_attempts})");
+                throw new StompException("Could not connect to $host:$port
+                ($att/{$this->_attempts}), ErrorCode $connect_errno, Reason:
+                $connect_errstr");
             } else if (is_resource($this->_socket)) {
                 $connected = true;
                 $this->_currentHost = $i;
@@ -502,7 +517,7 @@ class Stomp
 
         if (is_resource($this->_socket)) {
             $this->_writeFrame(new Frame('DISCONNECT', $headers));
-            fclose($this->_socket);
+            stream_socket_shutdown($this->_socket, STREAM_SHUT_RDWR);
         }
         $this->_socket = null;
         $this->_sessionId = null;
