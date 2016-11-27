@@ -187,10 +187,11 @@ class Stomp
      *
      * @param string $username
      * @param string $password
+     * @param string $clientId
      * @return boolean
      * @throws StompException
      */
-    public function connect ($username = '', $password = '')
+    public function connect ($username = '', $password = '', $clientId = null)
     {
         $this->_makeConnection();
         if ($username != '') {
@@ -199,6 +200,10 @@ class Stomp
         if ($password != '') {
             $this->_password = $password;
         }
+        if(!\is_null($clientId))
++       {
++           $this->clientId = $clientId;
++       }
 		$headers = array('login' => $this->_username , 'passcode' => $this->_password);
 		if ($this->clientId != null) {
 			$headers["client-id"] = $this->clientId;
