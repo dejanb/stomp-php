@@ -49,4 +49,3 @@ if ( $msg != null) {
 
 // disconnect
 $con->disconnect();
-?>

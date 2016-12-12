@@ -37,7 +37,7 @@ class StompTest extends PHPUnit_Framework_TestCase
     private $Stomp;
     private $broker = 'tcp://127.0.0.1:61613';
     private $queue = '/queue/test';
-	private $topic = '/topic/test';
+    private $topic = '/topic/test';
     /**
      * Prepares the environment before running a test.
      */
@@ -293,47 +293,46 @@ class StompTest extends PHPUnit_Framework_TestCase
         $this->assertTrue($this->Stomp->unsubscribe($this->queue));
     }
 
-	public function testDurable() {
-		$this->subscribe();
-		sleep(2);
-		$this->produce();
-		sleep(2);
-		$this->consume();
-	}
+    public function testDurable() {
+        $this->subscribe();
+        sleep(2);
+        $this->produce();
+        sleep(2);
+        $this->consume();
+    }
 
-	protected function produce() {
-		$producer = new Stomp($this->broker);
+    protected function produce() {
+        $producer = new Stomp($this->broker);
         $producer->sync = false;
         $producer->connect("system", "manager");
         $producer->send($this->topic, "test message", array('persistent'=>'true'));
-		$producer->disconnect();
-	}
+        $producer->disconnect();
+    }
 
-	protected function subscribe() {
-		$consumer = new Stomp($this->broker);
+    protected function subscribe() {
+        $consumer = new Stomp($this->broker);
         $consumer->sync = false;
-		$consumer->clientId = "test";
+        $consumer->clientId = "test";
         $consumer->connect("system", "manager");
-		$consumer->subscribe($this->topic);
-		$consumer->unsubscribe($this->topic);
-		$consumer->disconnect();
-	}
+        $consumer->subscribe($this->topic);
+        $consumer->unsubscribe($this->topic);
+        $consumer->disconnect();
+    }
 
-	protected function consume() {
-		$consumer2 = new Stomp($this->broker);
+    protected function consume() {
+        $consumer2 = new Stomp($this->broker);
         $consumer2->sync = false;
-		$consumer2->clientId = "test";
-		$consumer2->setReadTimeout(1);
+        $consumer2->clientId = "test";
+        $consumer2->setReadTimeout(1);
         $consumer2->connect("system", "manager");
-		$consumer2->subscribe($this->topic);
+        $consumer2->subscribe($this->topic);
 
         $frame = $consumer2->readFrame();
-		$this->assertEquals($frame->body, "test message");
-		if ($frame != null) {
-			$consumer2->ack($frame);
-		}
+        $this->assertEquals($frame->body, "test message");
+        if ($frame != null) {
+            $consumer2->ack($frame);
+        }
 
-		$consumer2->disconnect();
-	}
+        $consumer2->disconnect();
+    }
 }
-

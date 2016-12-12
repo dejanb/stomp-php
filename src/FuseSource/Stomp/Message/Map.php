@@ -1,6 +1,7 @@
 <?php
 namespace FuseSource\Stomp\Message;
 
+use FuseSource\Stomp\Frame;
 use FuseSource\Stomp\Message;
 /**
  *
@@ -34,16 +35,16 @@ class Map extends Message
     /**
      * Constructor
      *
-     * @param StompFrame|string $msg
+     * @param Frame|string $msg
      * @param array $headers
      */
-    function __construct ($msg, $headers = null)
+    function __construct($msg, $headers = null)
     {
-        if ($msg instanceof \FuseSource\Stomp\Frame) {
+        if ($msg instanceof Frame) {
             $this->_init($msg->command, $msg->headers, $msg->body);
             $this->map = json_decode($msg->body, true);
         } else {
-            $this->_init("SEND", $headers, $msg);
+            $this->_init('SEND', $headers, $msg);
             if ($this->headers == null) {
                 $this->headers = array();
             }

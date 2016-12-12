@@ -1,5 +1,4 @@
 <?php
-
 namespace FuseSource\Stomp;
 
 use FuseSource\Stomp\Exception\StompException;
@@ -44,8 +43,14 @@ class Frame
     {
         $this->_init($command, $headers, $body);
     }
-    
-    protected function _init ($command = null, $headers = null, $body = null)
+
+    /**
+     * @param string|null $command
+     * @param array|null $headers
+     * @param string|null $body
+     * @throws StompException
+     */
+    protected function _init($command = null, $headers = null, $body = null)
     {
         $this->command = $command;
         if ($headers != null) {

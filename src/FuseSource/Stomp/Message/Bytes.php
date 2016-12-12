@@ -1,5 +1,4 @@
 <?php
-
 namespace FuseSource\Stomp\Message;
 
 use FuseSource\Stomp\Message;
@@ -33,11 +32,11 @@ class Bytes extends Message
      * Constructor
      *
      * @param string $body
-     * @param array $headers
+     * @param array|null $headers
      */
-    function __construct ($body, $headers = null)
+    function __construct($body, $headers = null)
     {
-        $this->_init("SEND", $headers, $body);
+        $this->_init('SEND', $headers, $body);
         if ($this->headers == null) {
             $this->headers = array();
         }

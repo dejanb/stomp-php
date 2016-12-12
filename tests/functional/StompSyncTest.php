@@ -56,4 +56,3 @@ class StompSyncTest extends PHPUnit_Framework_TestCase
         $this->Stomp->ack($frame);
     }
 }
-
